@@ -39,7 +39,7 @@ const PLANS = [
 ];
 
 // ============ AUTH HELPERS ============
-const hashPassword = (pw) => {
+const hashPassword = (pw: string) => {
   // Simple non-cryptographic hash for demo (real app: use bcrypt server-side)
   let h = 0;
   for (let i = 0; i < pw.length; i++) h = ((h << 5) - h + pw.charCodeAt(i)) | 0;
