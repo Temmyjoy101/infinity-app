@@ -50,9 +50,9 @@ export default function StoryEngine() {
   const [view, setView] = useState("landing");
   const [navOpen, setNavOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [authModal, setAuthModal] = useState(null); // "login" | "signup" | null
-  const [showCheckout, setShowCheckout] = useState(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [authModal, setAuthModal] = useState<any>(null); // "login" | "signup" | null
+  const [showCheckout, setShowCheckout] = useState<any>(null);
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallReason, setPaywallReason] = useState("");
 
@@ -64,10 +64,10 @@ export default function StoryEngine() {
   const [length, setLength] = useState("60 seconds");
   const [intensity, setIntensity] = useState(3);
   const [generating, setGenerating] = useState(false);
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState<any>(null);
   const [outputView, setOutputView] = useState("detailed");
   const [copied, setCopied] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<any>(null);
   const [storiesUsed, setStoriesUsed] = useState(0);
 
   // Admin panel state
@@ -75,20 +75,20 @@ export default function StoryEngine() {
   const [allUsers, setAllUsers] = useState([]);
   const [allComplaints, setAllComplaints] = useState([]);
 
-  const rules = currentUser ? TIER_RULES[currentUser.tier] : TIER_RULES.free;
+  const rules = currentUser ? (TIER_RULES as any)[currentUser.tier] : TIER_RULES.free;
   const isAdmin = currentUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   // ============ SESSION RESTORE ============
   useEffect(() => {
     (async () => {
       try {
-        const session = await window.storage.get("current-session");
+        const session = await (window as any).storage.get("current-session");
         if (session) {
           const user = JSON.parse(session.value);
           // Refresh user from users list
-          const usersRes = await window.storage.get("all-users");
+          const usersRes = await (window as any).storage.get("all-users");
           const users = usersRes ? JSON.parse(usersRes.value) : [];
-          const fresh = users.find(u => u.email === user.email);
+          const fresh = users.find((u: any) => u.email === user.email);
           if (fresh) setCurrentUser(fresh);
         }
       } catch (e) {}
@@ -107,9 +107,9 @@ export default function StoryEngine() {
     if (isAdmin && view === "admin") {
       (async () => {
         try {
-          const u = await window.storage.get("all-users");
+          const u = await (window as any).storage.get("all-users");
           if (u) setAllUsers(JSON.parse(u.value));
-          const c = await window.storage.get("all-complaints");
+          const c = await (window as any).storage.get("all-complaints");
           if (c) setAllComplaints(JSON.parse(c.value));
         } catch (e) {}
       })();
@@ -117,12 +117,12 @@ export default function StoryEngine() {
   }, [view, isAdmin]);
 
   // ============ STORY USAGE LOAD ============
-  const getPeriodKey = (tier, email) => {
+  const getPeriodKey = (tier: string, email: string) => {
     const now = new Date();
-    if (TIER_RULES[tier].period === "day") return `usage-${email}-day-${now.toISOString().split("T")[0]}`;
-    if (TIER_RULES[tier].period === "week") {
+    if ((TIER_RULES as any)[tier].period === "day") return `usage-${email}-day-${now.toISOString().split("T")[0]}`;
+    if ((TIER_RULES as any)[tier].period === "week") {
       const onejan = new Date(now.getFullYear(), 0, 1);
-      const week = Math.ceil((((now - onejan) / 86400000) + onejan.getDay() + 1) / 7);
+      const week = Math.ceil((((now.getTime() - onejan.getTime()) / 86400000) + onejan.getDay() + 1) / 7);
       return `usage-${email}-week-${now.getFullYear()}-${week}`;
     }
     return `usage-${email}-unlimited`;
@@ -135,18 +135,18 @@ export default function StoryEngine() {
     if (intensity > rules.maxIntensity) setIntensity(rules.maxIntensity);
     (async () => {
       try {
-        const c = await window.storage.get(getPeriodKey(currentUser.tier, currentUser.email));
+        const c = await (window as any).storage.get(getPeriodKey(currentUser.tier, currentUser.email));
         setStoriesUsed(c ? parseInt(c.value) : 0);
       } catch (e) {}
     })();
   }, [currentUser]);
 
   // ============ AUTH FUNCTIONS ============
-  const signup = async (data) => {
+  const signup = async (data: any) => {
     try {
-      const usersRes = await window.storage.get("all-users");
+      const usersRes = await (window as any).storage.get("all-users");
       const users = usersRes ? JSON.parse(usersRes.value) : [];
-      if (users.find(u => u.email.toLowerCase() === data.email.toLowerCase())) {
+      if (users.find((u: any) => u.email.toLowerCase() === data.email.toLowerCase())) {
         return { error: "An account with this email already exists." };
       }
       const isAdminEmail = data.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -164,8 +164,8 @@ export default function StoryEngine() {
         status: "active",
       };
       users.push(newUser);
-      await window.storage.set("all-users", JSON.stringify(users));
-      await window.storage.set("current-session", JSON.stringify(newUser));
+      await (window as any).storage.set("all-users", JSON.stringify(users));
+      await (window as any).storage.set("current-session", JSON.stringify(newUser));
       setCurrentUser(newUser);
       setAuthModal(null);
       setView("app");
@@ -175,18 +175,18 @@ export default function StoryEngine() {
     }
   };
 
-  const login = async (email, password) => {
+  const login = async (email: string, password: string) => {
     try {
-      const usersRes = await window.storage.get("all-users");
+      const usersRes = await (window as any).storage.get("all-users");
       const users = usersRes ? JSON.parse(usersRes.value) : [];
-      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      const user = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
       if (!user) return { error: "No account found with this email." };
       if (user.passwordHash !== hashPassword(password)) return { error: "Incorrect password." };
       if (user.status === "suspended") return { error: "This account has been suspended. Contact admin." };
       user.lastLogin = new Date().toISOString();
-      const updatedUsers = users.map(u => u.email === user.email ? user : u);
-      await window.storage.set("all-users", JSON.stringify(updatedUsers));
-      await window.storage.set("current-session", JSON.stringify(user));
+      const updatedUsers = users.map((u: any) => u.email === user.email ? user : u);
+      await (window as any).storage.set("all-users", JSON.stringify(updatedUsers));
+      await (window as any).storage.set("current-session", JSON.stringify(user));
       setCurrentUser(user);
       setAuthModal(null);
       setView(user.role === "admin" ? "admin" : "app");
@@ -197,18 +197,18 @@ export default function StoryEngine() {
   };
 
   const logout = async () => {
-    try { await window.storage.delete("current-session"); } catch (e) {}
+    try { await (window as any).storage.delete("current-session"); } catch (e) {}
     setCurrentUser(null);
     setView("landing");
   };
 
-  const requireAuth = (next) => {
+  const requireAuth = (next: () => void) => {
     if (!currentUser) { setAuthModal("signup"); return; }
     next();
   };
 
   // ============ GENERATOR ============
-  const triggerPaywall = (reason) => { setPaywallReason(reason); setShowPaywall(true); };
+  const triggerPaywall = (reason: string) => { setPaywallReason(reason); setShowPaywall(true); };
 
   const handleGenerate = async () => {
     if (!currentUser) { setAuthModal("signup"); return; }
@@ -244,21 +244,21 @@ Return 5-7 scenes for short, 8-12 for longer. NO explanation outside the JSON.`;
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4000, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] }),
       });
       const data = await response.json();
-      let text = data.content.filter(b => b.type === "text").map(b => b.text).join("\n").replace(/```json|```/g, "").trim();
+      let text = data.content.filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n").replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(text);
       setResult(parsed);
       const newCount = storiesUsed + 1;
       setStoriesUsed(newCount);
       try {
-        await window.storage.set(getPeriodKey(currentUser.tier, currentUser.email), String(newCount));
+        await (window as any).storage.set(getPeriodKey(currentUser.tier, currentUser.email), String(newCount));
         // Update user record
-        const usersRes = await window.storage.get("all-users");
+        const usersRes = await (window as any).storage.get("all-users");
         const users = usersRes ? JSON.parse(usersRes.value) : [];
-        const updated = users.map(u => u.email === currentUser.email ? { ...u, storiesGenerated: (u.storiesGenerated || 0) + 1 } : u);
-        await window.storage.set("all-users", JSON.stringify(updated));
-        const me = updated.find(u => u.email === currentUser.email);
+        const updated = users.map((u: any) => u.email === currentUser.email ? { ...u, storiesGenerated: (u.storiesGenerated || 0) + 1 } : u);
+        await (window as any).storage.set("all-users", JSON.stringify(updated));
+        const me = updated.find((u: any) => u.email === currentUser.email);
         setCurrentUser(me);
-        await window.storage.set("current-session", JSON.stringify(me));
+        await (window as any).storage.set("current-session", JSON.stringify(me));
       } catch (e) {}
     } catch (e) {
       setError("Generation hiccup — try again.");
@@ -270,58 +270,58 @@ Return 5-7 scenes for short, 8-12 for longer. NO explanation outside the JSON.`;
   const copyPrompt = () => { if (!result) return; navigator.clipboard.writeText(result.masterPrompt); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   const downloadPrompt = () => { if (!result) return; const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `${result.title.replace(/\s+/g, "-").toLowerCase()}.json`; a.click(); };
 
-  const upgrade = async (planId) => {
+  const upgrade = async (planId: string) => {
     if (!currentUser) return;
     try {
-      const usersRes = await window.storage.get("all-users");
+      const usersRes = await (window as any).storage.get("all-users");
       const users = usersRes ? JSON.parse(usersRes.value) : [];
-      const updated = users.map(u => u.email === currentUser.email ? { ...u, tier: planId } : u);
-      await window.storage.set("all-users", JSON.stringify(updated));
-      const me = updated.find(u => u.email === currentUser.email);
+      const updated = users.map((u: any) => u.email === currentUser.email ? { ...u, tier: planId } : u);
+      await (window as any).storage.set("all-users", JSON.stringify(updated));
+      const me = updated.find((u: any) => u.email === currentUser.email);
       setCurrentUser(me);
-      await window.storage.set("current-session", JSON.stringify(me));
+      await (window as any).storage.set("current-session", JSON.stringify(me));
     } catch (e) {}
     setShowCheckout(null);
     setShowPaywall(false);
   };
 
-  const tryGenreClick = (gid) => { if (!rules.genres.includes(gid)) { triggerPaywall(`The "${GENRES.find(g => g.id === gid)?.name}" genre is locked on the ${rules.label} plan.`); return; } setGenre(gid); };
-  const tryLengthClick = (l) => { if (!rules.lengths.includes(l)) { triggerPaywall(`${l} scripts are locked on the ${rules.label} plan.`); return; } setLength(l); };
-  const tryIntensityChange = (v) => { if (v > rules.maxIntensity) { triggerPaywall(`Intensity above ${rules.maxIntensity}/10 is locked on the ${rules.label} plan.`); return; } setIntensity(v); };
+  const tryGenreClick = (gid: string) => { if (!rules.genres.includes(gid)) { triggerPaywall(`The "${GENRES.find(g => g.id === gid)?.name}" genre is locked on the ${rules.label} plan.`); return; } setGenre(gid); };
+  const tryLengthClick = (l: string) => { if (!rules.lengths.includes(l)) { triggerPaywall(`${l} scripts are locked on the ${rules.label} plan.`); return; } setLength(l); };
+  const tryIntensityChange = (v: number) => { if (v > rules.maxIntensity) { triggerPaywall(`Intensity above ${rules.maxIntensity}/10 is locked on the ${rules.label} plan.`); return; } setIntensity(v); };
 
-  const submitComplaint = async (data) => {
+  const submitComplaint = async (data: any) => {
     try {
-      const cRes = await window.storage.get("all-complaints");
+      const cRes = await (window as any).storage.get("all-complaints");
       const complaints = cRes ? JSON.parse(cRes.value) : [];
       const entry = { id: `c_${Date.now()}`, ...data, userEmail: currentUser?.email || "anonymous", userName: currentUser?.fullName || "Guest", status: "open", createdAt: new Date().toISOString() };
       complaints.unshift(entry);
-      await window.storage.set("all-complaints", JSON.stringify(complaints));
+      await (window as any).storage.set("all-complaints", JSON.stringify(complaints));
       return { ok: true };
     } catch (e) { return { error: "Could not submit." }; }
   };
 
-  const adminUpdateUser = async (email, updates) => {
-    const usersRes = await window.storage.get("all-users");
+  const adminUpdateUser = async (email: string, updates: any) => {
+    const usersRes = await (window as any).storage.get("all-users");
     const users = usersRes ? JSON.parse(usersRes.value) : [];
-    const updated = users.map(u => u.email === email ? { ...u, ...updates } : u);
-    await window.storage.set("all-users", JSON.stringify(updated));
+    const updated = users.map((u: any) => u.email === email ? { ...u, ...updates } : u);
+    await (window as any).storage.set("all-users", JSON.stringify(updated));
     setAllUsers(updated);
   };
 
-  const adminDeleteUser = async (email) => {
+  const adminDeleteUser = async (email: string) => {
     if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) return;
-    const usersRes = await window.storage.get("all-users");
+    const usersRes = await (window as any).storage.get("all-users");
     const users = usersRes ? JSON.parse(usersRes.value) : [];
-    const updated = users.filter(u => u.email !== email);
-    await window.storage.set("all-users", JSON.stringify(updated));
+    const updated = users.filter((u: any) => u.email !== email);
+    await (window as any).storage.set("all-users", JSON.stringify(updated));
     setAllUsers(updated);
   };
 
-  const adminUpdateComplaint = async (id, status) => {
-    const cRes = await window.storage.get("all-complaints");
+  const adminUpdateComplaint = async (id: string, status: string) => {
+    const cRes = await (window as any).storage.get("all-complaints");
     const complaints = cRes ? JSON.parse(cRes.value) : [];
-    const updated = complaints.map(c => c.id === id ? { ...c, status } : c);
-    await window.storage.set("all-complaints", JSON.stringify(updated));
+    const updated = complaints.map((c: any) => c.id === id ? { ...c, status } : c);
+    await (window as any).storage.set("all-complaints", JSON.stringify(updated));
     setAllComplaints(updated);
   };
 
@@ -635,15 +635,15 @@ Return 5-7 scenes for short, 8-12 for longer. NO explanation outside the JSON.`;
                           <div className="border-l-2 border-red-700 pl-4 my-4"><div className="text-xs uppercase tracking-wider text-stone-500 mb-1">Hook</div><p className="text-stone-100 font-display text-lg italic">"{result.hookLine}"</p></div>
                           {result.grounding && (<div className="grid sm:grid-cols-3 gap-3 text-xs mt-4"><div className="bg-black/50 p-3 rounded-sm border border-stone-900"><div className="text-stone-500 uppercase tracking-wider mb-1">Place</div><div className="text-stone-200">{result.grounding.place}</div></div><div className="bg-black/50 p-3 rounded-sm border border-stone-900"><div className="text-stone-500 uppercase tracking-wider mb-1">Year</div><div className="text-stone-200">{result.grounding.year}</div></div><div className="bg-black/50 p-3 rounded-sm border border-stone-900"><div className="text-stone-500 uppercase tracking-wider mb-1">Real Pattern</div><div className="text-stone-200">{result.grounding.realPattern}</div></div></div>)}
                         </div>
-                        {result.characters && result.characters.length > 0 && (<div className="bg-stone-950 border border-stone-900 rounded-sm p-6"><h3 className="font-display text-xl mb-4 text-red-400">Character Anchors</h3><div className="space-y-3">{result.characters.map((c, i) => (<div key={i} className="border-l-2 border-stone-800 pl-4"><div className="font-medium text-stone-100">{c.name}</div><div className="text-sm text-stone-400">{c.description}</div>{c.voice && <div className="text-xs text-stone-500 mt-1 italic">Voice: {c.voice}</div>}</div>))}</div></div>)}
-                        {result.scenes && result.scenes.map((scene, i) => (
+                        {result.characters && result.characters.length > 0 && (<div className="bg-stone-950 border border-stone-900 rounded-sm p-6"><h3 className="font-display text-xl mb-4 text-red-400">Character Anchors</h3><div className="space-y-3">{result.characters.map((c: any, i: number) => (<div key={i} className="border-l-2 border-stone-800 pl-4"><div className="font-medium text-stone-100">{c.name}</div><div className="text-sm text-stone-400">{c.description}</div>{c.voice && <div className="text-xs text-stone-500 mt-1 italic">Voice: {c.voice}</div>}</div>))}</div></div>)}
+                        {result.scenes && result.scenes.map((scene: any, i: number) => (
                           <div key={i} className="bg-stone-950 border border-stone-900 rounded-sm p-6">
                             <div className="flex items-center justify-between mb-3"><div><div className="text-xs text-red-400 uppercase tracking-wider">Scene {scene.number} · {scene.beat}</div><h3 className="font-display text-2xl">{scene.title}</h3></div></div>
                             <p className="text-stone-400 text-sm mb-4 leading-relaxed">{scene.microScript}</p>
                             <div className="bg-black/50 border-l-2 border-red-700 p-4 mb-4"><div className="text-xs uppercase tracking-wider text-stone-500 mb-1">Voice-Over</div><p className="font-display text-lg italic text-stone-100">"{scene.voiceOver}"</p></div>
                             {scene.shots && scene.shots.length > 0 && (
                               <div className="space-y-2"><div className="text-xs uppercase tracking-wider text-stone-500 mb-2">Shot List</div>
-                                {scene.shots.map((shot, j) => (
+                                {scene.shots.map((shot: any, j: number) => (
                                   <div key={j} className="bg-black/30 border border-stone-900 rounded-sm p-3 text-xs grid grid-cols-2 sm:grid-cols-4 gap-2">
                                     <div><span className="text-stone-500">Type:</span> <span className="text-stone-200">{shot.shotType}</span></div>
                                     <div><span className="text-stone-500">Camera:</span> <span className="text-stone-200">{shot.camera}</span></div>
@@ -658,7 +658,7 @@ Return 5-7 scenes for short, 8-12 for longer. NO explanation outside the JSON.`;
                             )}
                           </div>
                         ))}
-                        {result.captions && (<div className="bg-stone-950 border border-stone-900 rounded-sm p-6"><h3 className="font-display text-xl mb-3 text-red-400">Viral Captions</h3><div className="space-y-2">{result.captions.map((c, i) => (<div key={i} className="bg-black/50 border border-stone-900 p-3 rounded-sm text-sm text-stone-200">{c}</div>))}</div></div>)}
+                        {result.captions && (<div className="bg-stone-950 border border-stone-900 rounded-sm p-6"><h3 className="font-display text-xl mb-3 text-red-400">Viral Captions</h3><div className="space-y-2">{result.captions.map((c: any, i: number) => (<div key={i} className="bg-black/50 border border-stone-900 p-3 rounded-sm text-sm text-stone-200">{c}</div>))}</div></div>)}
                       </div>
                     ) : (
                       <div className="bg-stone-950 border border-stone-900 rounded-sm p-6"><div className="text-xs uppercase tracking-wider text-stone-500 mb-3">Master Prompt — Paste into Veo, Runway, Sora, Kling</div><pre className="whitespace-pre-wrap text-sm text-stone-200 font-mono leading-relaxed bg-black/50 p-4 rounded-sm border border-stone-900 max-h-[600px] overflow-y-auto">{result.masterPrompt}</pre></div>
@@ -715,16 +715,16 @@ Return 5-7 scenes for short, 8-12 for longer. NO explanation outside the JSON.`;
 }
 
 // ================ AUTH MODAL ================
-function AuthModal({ mode, setMode, onLogin, onSignup, onClose }) {
-  const [form, setForm] = useState({ fullName: "", email: "", password: "", confirmPassword: "", country: "United Kingdom", agreeTerms: false });
-  const [errors, setErrors] = useState({});
+function AuthModal({ mode, setMode, onLogin, onSignup, onClose }: any) {
+  const [form, setForm] = useState<any>({ fullName: "", email: "", password: "", confirmPassword: "", country: "United Kingdom", agreeTerms: false });
+  const [errors, setErrors] = useState<any>({});
   const [busy, setBusy] = useState(false);
   const [serverError, setServerError] = useState("");
 
-  const update = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: null })); setServerError(""); };
+  const update = (k: string, v: any) => { setForm((f: any) => ({ ...f, [k]: v })); setErrors((e: any) => ({ ...e, [k]: null })); setServerError(""); };
 
   const handleSubmit = async () => {
-    const e = {};
+    const e: any = {};
     if (mode === "signup") {
       if (!form.fullName.trim() || form.fullName.trim().length < 2) e.fullName = "Full name required";
       if (form.password !== form.confirmPassword) e.confirmPassword = "Passwords don't match";
@@ -752,15 +752,15 @@ function AuthModal({ mode, setMode, onLogin, onSignup, onClose }) {
         </div>
 
         <div className="p-6 space-y-4">
-          {mode === "signup" && <FormField icon={<User className="w-4 h-4" />} label="Full Name" placeholder="Jane Doe" value={form.fullName} onChange={v => update("fullName", v)} error={errors.fullName} />}
-          <FormField icon={<Mail className="w-4 h-4" />} label="Email" placeholder="you@example.com" value={form.email} onChange={v => update("email", v)} error={errors.email} type="email" />
-          <FormField icon={<KeyRound className="w-4 h-4" />} label="Password" placeholder="••••••" value={form.password} onChange={v => update("password", v)} error={errors.password} type="password" />
+          {mode === "signup" && <FormField icon={<User className="w-4 h-4" />} label="Full Name" placeholder="Jane Doe" value={form.fullName} onChange={(v: any) => update("fullName", v)} error={errors.fullName} />}
+          <FormField icon={<Mail className="w-4 h-4" />} label="Email" placeholder="you@example.com" value={form.email} onChange={(v: any) => update("email", v)} error={errors.email} type="email" />
+          <FormField icon={<KeyRound className="w-4 h-4" />} label="Password" placeholder="••••••" value={form.password} onChange={(v: any) => update("password", v)} error={errors.password} type="password" />
           {mode === "signup" && (
             <>
-              <FormField icon={<KeyRound className="w-4 h-4" />} label="Confirm Password" placeholder="••••••" value={form.confirmPassword} onChange={v => update("confirmPassword", v)} error={errors.confirmPassword} type="password" />
+              <FormField icon={<KeyRound className="w-4 h-4" />} label="Confirm Password" placeholder="••••••" value={form.confirmPassword} onChange={(v: any) => update("confirmPassword", v)} error={errors.confirmPassword} type="password" />
               <div>
                 <label className="text-xs uppercase tracking-wider text-stone-500 mb-1 block">Country</label>
-                <select value={form.country} onChange={e => update("country", e.target.value)} className="w-full bg-black border border-stone-800 rounded-sm px-3 py-2.5 text-sm focus:border-red-700 outline-none">{COUNTRIES.map(c => <option key={c}>{c}</option>)}</select>
+                <select value={form.country} onChange={e => update("country", e.target.value)} className="w-full bg-black border border-stone-800 rounded-sm px-3 py-2.5 text-sm focus:border-red-700 outline-none">{COUNTRIES.map((c: any) => <option key={c}>{c}</option>)}</select>
               </div>
               <label className={`flex items-start gap-2 text-xs cursor-pointer ${errors.agreeTerms ? "text-red-400" : "text-stone-400"}`}>
                 <input type="checkbox" checked={form.agreeTerms} onChange={e => update("agreeTerms", e.target.checked)} className="mt-0.5 accent-red-700" />
@@ -788,7 +788,7 @@ function AuthModal({ mode, setMode, onLogin, onSignup, onClose }) {
 }
 
 // ================ HELP CENTER ================
-function HelpCenter({ user, onSubmit, adminEmail }) {
+function HelpCenter({ user, onSubmit, adminEmail }: any) {
   const [tab, setTab] = useState("faq");
   const [form, setForm] = useState({ category: "Bug Report", subject: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
@@ -852,7 +852,7 @@ function HelpCenter({ user, onSubmit, adminEmail }) {
                       <option>Bug Report</option><option>Feature Request</option><option>Billing Issue</option><option>Content Quality Review</option><option>Account Issue</option><option>General Feedback</option><option>Other</option>
                     </select>
                   </div>
-                  <FormField label="Subject" placeholder="Brief summary" value={form.subject} onChange={v => setForm({ ...form, subject: v })} />
+                  <FormField label="Subject" placeholder="Brief summary" value={form.subject} onChange={(v: any) => setForm({ ...form, subject: v })} />
                   <div>
                     <label className="text-xs uppercase tracking-wider text-stone-500 mb-1 block">Message</label>
                     <textarea rows={6} value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} placeholder="Describe in detail..." className="w-full bg-black border border-stone-800 rounded-sm px-3 py-2.5 text-sm focus:border-red-700 outline-none resize-none" />
@@ -885,7 +885,7 @@ function HelpCenter({ user, onSubmit, adminEmail }) {
   );
 }
 
-function FaqItem({ q, a }) {
+function FaqItem({ q, a }: any) {
   const [open, setOpen] = useState(false);
   return (
     <div className="bg-stone-950 border border-stone-900 rounded-sm">
@@ -899,15 +899,15 @@ function FaqItem({ q, a }) {
 }
 
 // ================ ADMIN PANEL ================
-function AdminPanel({ adminTab, setAdminTab, users, complaints, updateUser, deleteUser, updateComplaint, adminEmail, openEngine }) {
+function AdminPanel({ adminTab, setAdminTab, users, complaints, updateUser, deleteUser, updateComplaint, adminEmail, openEngine }: any) {
   const stats = {
     totalUsers: users.length,
-    activeUsers: users.filter(u => u.status === "active").length,
-    suspended: users.filter(u => u.status === "suspended").length,
-    paidUsers: users.filter(u => u.tier === "creator" || u.tier === "pro").length,
-    totalStories: users.reduce((sum, u) => sum + (u.storiesGenerated || 0), 0),
-    openComplaints: complaints.filter(c => c.status === "open").length,
-    revenue: users.reduce((sum, u) => sum + (u.tier === "creator" ? 20 : u.tier === "pro" ? 20 : 0), 0),
+    activeUsers: users.filter((u: any) => u.status === "active").length,
+    suspended: users.filter((u: any) => u.status === "suspended").length,
+    paidUsers: users.filter((u: any) => u.tier === "creator" || u.tier === "pro").length,
+    totalStories: users.reduce((sum: number, u: any) => sum + (u.storiesGenerated || 0), 0),
+    openComplaints: complaints.filter((c: any) => c.status === "open").length,
+    revenue: users.reduce((sum: number, u: any) => sum + (u.tier === "creator" ? 20 : u.tier === "pro" ? 20 : 0), 0),
   };
 
   const TABS = [
@@ -958,7 +958,7 @@ function AdminPanel({ adminTab, setAdminTab, users, complaints, updateUser, dele
                 <div className="bg-stone-950 border border-stone-900 rounded-sm p-5">
                   <h3 className="font-display text-xl mb-4">Recent Signups</h3>
                   <div className="space-y-2">
-                    {users.length === 0 ? <p className="text-stone-500 text-sm">No users yet.</p> : users.slice().sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5).map(u => (
+                    {users.length === 0 ? <p className="text-stone-500 text-sm">No users yet.</p> : users.slice().sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5).map((u: any) => (
                       <div key={u.id} className="flex items-center justify-between p-3 bg-black border border-stone-900 rounded-sm text-sm">
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${u.role === "admin" ? "bg-yellow-700" : "bg-red-900"}`}>{u.fullName.charAt(0).toUpperCase()}</div>
@@ -989,7 +989,7 @@ function AdminPanel({ adminTab, setAdminTab, users, complaints, updateUser, dele
                       </tr>
                     </thead>
                     <tbody>
-                      {users.map(u => (
+                      {users.map((u: any) => (
                         <tr key={u.id} className="border-t border-stone-900 hover:bg-black/30">
                           <td className="p-3"><div className="text-stone-100">{u.fullName}</div><div className="text-xs text-stone-500">{u.email}</div></td>
                           <td className="p-3 text-stone-300">{u.country}</td>
@@ -1028,7 +1028,7 @@ function AdminPanel({ adminTab, setAdminTab, users, complaints, updateUser, dele
                 </div>
                 {complaints.length === 0 ? (
                   <div className="bg-stone-950 border border-stone-900 rounded-sm p-12 text-center text-stone-500">No complaints yet.</div>
-                ) : complaints.map(c => (
+                ) : complaints.map((c: any) => (
                   <div key={c.id} className="bg-stone-950 border border-stone-900 rounded-sm p-5">
                     <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
                       <div>
@@ -1067,7 +1067,7 @@ function AdminPanel({ adminTab, setAdminTab, users, complaints, updateUser, dele
                   </div>
                   <div className="p-4 bg-red-950/20 border border-red-900/40 rounded-sm">
                     <div className="text-xs uppercase tracking-wider text-red-400 mb-2">Danger Zone</div>
-                    <button onClick={async () => { if (confirm("Reset ALL non-admin users? This cannot be undone.")) { const filtered = users.filter(u => u.role === "admin"); await window.storage.set("all-users", JSON.stringify(filtered)); window.location.reload(); } }} className="text-xs bg-red-900/40 hover:bg-red-800/50 text-red-300 px-3 py-2 rounded-sm border border-red-800/50">Reset All Non-Admin Users</button>
+                    <button onClick={async () => { if (confirm("Reset ALL non-admin users? This cannot be undone.")) { const filtered = users.filter((u: any) => u.role === "admin"); await (window as any).storage.set("all-users", JSON.stringify(filtered)); window.location.reload(); } }} className="text-xs bg-red-900/40 hover:bg-red-800/50 text-red-300 px-3 py-2 rounded-sm border border-red-800/50">Reset All Non-Admin Users</button>
                   </div>
                 </div>
               </div>
@@ -1079,7 +1079,7 @@ function AdminPanel({ adminTab, setAdminTab, users, complaints, updateUser, dele
   );
 }
 
-function StatCard({ label, value, icon, accent }) {
+function StatCard({ label, value, icon, accent = "" }: any) {
   const accentColor = accent === "red" ? "text-red-400 border-red-900/40" : accent === "gold" ? "text-yellow-400 border-yellow-900/40" : "text-stone-300 border-stone-900";
   return (
     <div className={`bg-stone-950 border ${accentColor} rounded-sm p-4`}>
@@ -1090,7 +1090,7 @@ function StatCard({ label, value, icon, accent }) {
 }
 
 // ================ SECURE CHECKOUT ================
-function SecureCheckout({ plan, user, onClose, onSuccess }) {
+function SecureCheckout({ plan, user, onClose, onSuccess }: any) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     fullName: user?.fullName || "", email: user?.email || "", phone: "",
@@ -1098,14 +1098,14 @@ function SecureCheckout({ plan, user, onClose, onSuccess }) {
     cardNumber: "", cardName: "", expiry: "", cvc: "",
     saveCard: true, agreeTerms: false,
   });
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<any>({});
 
-  const update = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: null })); };
-  const formatCard = (v) => v.replace(/\s/g, "").replace(/(\d{4})/g, "$1 ").trim().slice(0, 19);
-  const formatExpiry = (v) => { const c = v.replace(/\D/g, "").slice(0, 4); return c.length > 2 ? `${c.slice(0,2)} / ${c.slice(2)}` : c; };
+  const update = (k: string, v: any) => { setForm((f: any) => ({ ...f, [k]: v })); setErrors((e: any) => ({ ...e, [k]: null })); };
+  const formatCard = (v: string) => v.replace(/\s/g, "").replace(/(\d{4})/g, "$1 ").trim().slice(0, 19);
+  const formatExpiry = (v: string) => { const c = v.replace(/\D/g, "").slice(0, 4); return c.length > 2 ? `${c.slice(0,2)} / ${c.slice(2)}` : c; };
 
   const validateStep1 = () => {
-    const e = {};
+    const e: any = {};
     if (!form.fullName.trim()) e.fullName = "Required";
     if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Valid email required";
     if (!form.phone.trim() || form.phone.replace(/\D/g,"").length < 7) e.phone = "Valid number required";
@@ -1117,7 +1117,7 @@ function SecureCheckout({ plan, user, onClose, onSuccess }) {
   };
 
   const validateStep2 = () => {
-    const e = {};
+    const e: any = {};
     if (form.cardNumber.replace(/\s/g, "").length < 15) e.cardNumber = "Valid card required";
     if (!form.cardName.trim()) e.cardName = "Required";
     if (form.expiry.replace(/\D/g, "").length !== 4) e.expiry = "MM YY";
@@ -1158,22 +1158,22 @@ function SecureCheckout({ plan, user, onClose, onSuccess }) {
         {step === 1 && (
           <div className="px-6 pb-6 space-y-4">
             <div className="text-xs uppercase tracking-wider text-stone-500 flex items-center gap-2"><User className="w-3 h-3" /> Personal Details</div>
-            <FormField icon={<User className="w-4 h-4" />} label="Full Name" placeholder="Jane Doe" value={form.fullName} onChange={v => update("fullName", v)} error={errors.fullName} />
+            <FormField icon={<User className="w-4 h-4" />} label="Full Name" placeholder="Jane Doe" value={form.fullName} onChange={(v: any) => update("fullName", v)} error={errors.fullName} />
             <div className="grid grid-cols-2 gap-3">
-              <FormField icon={<Mail className="w-4 h-4" />} label="Email" placeholder="you@example.com" value={form.email} onChange={v => update("email", v)} error={errors.email} type="email" />
-              <FormField icon={<Phone className="w-4 h-4" />} label="Phone" placeholder="+234..." value={form.phone} onChange={v => update("phone", v)} error={errors.phone} />
+              <FormField icon={<Mail className="w-4 h-4" />} label="Email" placeholder="you@example.com" value={form.email} onChange={(v: any) => update("email", v)} error={errors.email} type="email" />
+              <FormField icon={<Phone className="w-4 h-4" />} label="Phone" placeholder="+234..." value={form.phone} onChange={(v: any) => update("phone", v)} error={errors.phone} />
             </div>
             <div className="text-xs uppercase tracking-wider text-stone-500 flex items-center gap-2 pt-3"><MapPin className="w-3 h-3" /> Billing Address</div>
-            <FormField label="Address Line 1" placeholder="123 Main Street" value={form.addressLine1} onChange={v => update("addressLine1", v)} error={errors.addressLine1} />
-            <FormField label="Address Line 2 (optional)" placeholder="Apt, suite, etc." value={form.addressLine2} onChange={v => update("addressLine2", v)} />
+            <FormField label="Address Line 1" placeholder="123 Main Street" value={form.addressLine1} onChange={(v: any) => update("addressLine1", v)} error={errors.addressLine1} />
+            <FormField label="Address Line 2 (optional)" placeholder="Apt, suite, etc." value={form.addressLine2} onChange={(v: any) => update("addressLine2", v)} />
             <div className="grid grid-cols-2 gap-3">
-              <FormField label="City" placeholder="Lagos" value={form.city} onChange={v => update("city", v)} error={errors.city} />
-              <FormField label="Postcode / ZIP" placeholder="100001" value={form.postcode} onChange={v => update("postcode", v)} error={errors.postcode} />
+              <FormField label="City" placeholder="Lagos" value={form.city} onChange={(v: any) => update("city", v)} error={errors.city} />
+              <FormField label="Postcode / ZIP" placeholder="100001" value={form.postcode} onChange={(v: any) => update("postcode", v)} error={errors.postcode} />
             </div>
             <div>
               <label className="text-xs uppercase tracking-wider text-stone-500 mb-1 block">Country</label>
               <select value={form.country} onChange={e => update("country", e.target.value)} className="w-full bg-black border border-stone-800 rounded-sm px-3 py-2.5 text-sm focus:border-red-700 outline-none max-h-60">
-                {COUNTRIES.map(c => <option key={c}>{c}</option>)}
+                {COUNTRIES.map((c: any) => <option key={c}>{c}</option>)}
               </select>
             </div>
             <button onClick={handleNext} className="w-full bg-red-700 hover:bg-red-600 text-stone-100 py-3 rounded-sm text-sm font-medium tracking-wide flex items-center justify-center gap-2 mt-2">Continue to Payment <ArrowRight className="w-4 h-4" /></button>
@@ -1183,11 +1183,11 @@ function SecureCheckout({ plan, user, onClose, onSuccess }) {
         {step === 2 && (
           <div className="px-6 pb-6 space-y-4">
             <div className="text-xs uppercase tracking-wider text-stone-500 flex items-center gap-2"><CreditCard className="w-3 h-3" /> Card Details</div>
-            <FormField label="Card Number" placeholder="1234 5678 9012 3456" value={form.cardNumber} onChange={v => update("cardNumber", formatCard(v))} error={errors.cardNumber} icon={<CreditCard className="w-4 h-4" />} />
-            <FormField label="Name on Card" placeholder="JANE DOE" value={form.cardName} onChange={v => update("cardName", v.toUpperCase())} error={errors.cardName} />
+            <FormField label="Card Number" placeholder="1234 5678 9012 3456" value={form.cardNumber} onChange={(v: any) => update("cardNumber", formatCard(v))} error={errors.cardNumber} icon={<CreditCard className="w-4 h-4" />} />
+            <FormField label="Name on Card" placeholder="JANE DOE" value={form.cardName} onChange={(v: any) => update("cardName", v.toUpperCase())} error={errors.cardName} />
             <div className="grid grid-cols-2 gap-3">
-              <FormField label="Expiry (MM YY)" placeholder="12 / 28" value={form.expiry} onChange={v => update("expiry", formatExpiry(v))} error={errors.expiry} />
-              <FormField label="CVC" placeholder="123" value={form.cvc} onChange={v => update("cvc", v.replace(/\D/g,"").slice(0,4))} error={errors.cvc} type="password" />
+              <FormField label="Expiry (MM YY)" placeholder="12 / 28" value={form.expiry} onChange={(v: any) => update("expiry", formatExpiry(v))} error={errors.expiry} />
+              <FormField label="CVC" placeholder="123" value={form.cvc} onChange={(v: any) => update("cvc", v.replace(/\D/g,"").slice(0,4))} error={errors.cvc} type="password" />
             </div>
             <label className="flex items-start gap-2 text-xs text-stone-400 cursor-pointer pt-2"><input type="checkbox" checked={form.saveCard} onChange={e => update("saveCard", e.target.checked)} className="mt-0.5 accent-red-700" /><span>Save card securely for future renewals (encrypted via Stripe)</span></label>
             <label className={`flex items-start gap-2 text-xs cursor-pointer ${errors.agreeTerms ? "text-red-400" : "text-stone-400"}`}><input type="checkbox" checked={form.agreeTerms} onChange={e => update("agreeTerms", e.target.checked)} className="mt-0.5 accent-red-700" /><span>I agree to the Terms of Service and Privacy Policy. I understand this is a recurring subscription that I can cancel anytime.</span></label>
@@ -1218,7 +1218,7 @@ function SecureCheckout({ plan, user, onClose, onSuccess }) {
   );
 }
 
-function FormField({ label, value, onChange, placeholder, error, type = "text", icon }) {
+function FormField({ label, value, onChange, placeholder, error, type = "text", icon }: any) {
   return (
     <div>
       <label className="text-xs uppercase tracking-wider text-stone-500 mb-1 block">{label}</label>
@@ -1230,3 +1230,58 @@ function FormField({ label, value, onChange, placeholder, error, type = "text", 
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
